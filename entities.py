@@ -25,6 +25,9 @@ class SimstringPredictor(BasePredictor):
         for fname in Path(data_path).glob("*.jsonl"):
             self.known_entities.extend(read_jsonl(fname))
 
+        with open(data_path / "blacklist") as f:
+            self.blacklisted = [line.strip() for line in f]
+
         self.db = DictDatabase(CharacterNgramFeatureExtractor(3))
         for ent in self.known_entities:
             self.db.add(ent["title"].lower())
@@ -41,6 +44,8 @@ class SimstringPredictor(BasePredictor):
                 text["text"][sent_start:sent_end], 3
             ):
                 query = ngram.lower()
+                if query in self.blacklisted:
+                    continue
                 results = self.searcher.ranked_search(query, 0.7)
                 if results:
                     matches.append(
