@@ -10,6 +10,11 @@ nltk_tokenizer = nltk.data.load("tokenizers/punkt/dutch.pickle")
 
 def preprocess(text: str):
     normalized = re.sub(r"\s+", " ", text)
+
+    if len(normalized) == 0:
+        # empty input?
+        return {"text": "", "sentences": []}
+
     sents = nltk_tokenizer.tokenize(normalized, realign_boundaries=True)
     bounds = [(0, len(sents[0]))]
 
