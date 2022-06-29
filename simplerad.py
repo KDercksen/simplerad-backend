@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import logging
+from time import perf_counter
 from typing import List
 
 from fastapi import FastAPI
@@ -10,6 +12,8 @@ from entities import entity_taggers, get_entities
 from schemas import EntityTaggerResponse, SearchResponse, SummaryResponse, TextRequest
 from search import get_search_results, searchers
 from summarization import get_summary
+
+logger = logging.getLogger("uvicorn")
 
 app = FastAPI(title="simplerad API")
 app.add_middleware(
@@ -45,14 +49,26 @@ def settings():
 
 @app.post("/entities/", response_model=List[EntityTaggerResponse])
 def entities(req: List[TextRequest]):
-    return [get_entities(r.text, r.model_name) for r in req]
+    start_time = perf_counter()
+    results = [get_entities(r.text, r.model_name) for r in req]
+    duration = perf_counter() - start_time
+    logger.info(f"entities: processed {len(req)} in {duration:.2f}s")
+    return results
 
 
 @app.post("/search/", response_model=List[SearchResponse])
 def search(req: List[TextRequest]):
-    return [get_search_results(r.text, r.model_name) for r in req]
+    start_time = perf_counter()
+    results = [get_search_results(r.text, r.model_name) for r in req]
+    duration = perf_counter() - start_time
+    logger.info(f"search: processed {len(req)} in {duration:.2f}s")
+    return results
 
 
 @app.post("/summarize/", response_model=List[SummaryResponse])
 def summarize(req: List[TextRequest]):
-    return [get_summary(r.text, r.model_name) for r in req]
+    start_time = perf_counter()
+    results = [get_summary(r.text, r.model_name) for r in req]
+    duration = perf_counter() - start_time
+    logger.info(f"summarize: processed {len(req)} in {duration:.2f}s")
+    return results
