@@ -10,6 +10,8 @@ from simstring.measure.cosine import CosineMeasure
 from simstring.database.dict import DictDatabase
 from simstring.searcher import Searcher
 
+from nltk.stem.snowball import DutchStemmer
+
 
 class BaseSearcher:
     def search(self, text: str):
@@ -22,11 +24,13 @@ class SimstringJSONLFolderSearcher(BaseSearcher):
         for filename in directory.glob("*.jsonl"):
             self.known_entities.extend(read_jsonl(filename))
 
+        self.stemmer = DutchStemmer()
         self.db = DictDatabase(CharacterNgramFeatureExtractor(3))
         self.title2entity = {}
         for ent in self.known_entities:
-            self.db.add(ent["title"].lower())
-            self.title2entity[ent["title"].lower()] = ent
+            stemmed_title = self.stemmer.stem(ent["title"].lower())
+            self.db.add(stemmed_title)
+            self.title2entity[stemmed_title] = ent
         self.searcher = Searcher(self.db, CosineMeasure())
 
     def search(self, text: str):

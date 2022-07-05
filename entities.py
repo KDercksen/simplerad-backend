@@ -13,6 +13,8 @@ from simstring.measure.cosine import CosineMeasure
 from simstring.database.dict import DictDatabase
 from simstring.searcher import Searcher
 
+from nltk.stem.snowball import DutchStemmer
+
 
 class BasePredictor:
     def predict(self, text):
@@ -29,12 +31,13 @@ class SimstringPredictor(BasePredictor):
         with open(data_path / "blacklist") as f:
             self.blacklisted = [line.strip() for line in f]
 
+        self.nlp = spacy.load("nl_core_news_lg", disable=["tagger", "parser"])
+        self.stemmer = DutchStemmer()
+
         self.db = DictDatabase(CharacterNgramFeatureExtractor(3))
         for ent in self.known_entities:
-            self.db.add(ent["title"].lower())
+            self.db.add(self.stemmer.stem(ent["title"].lower()))
         self.searcher = Searcher(self.db, CosineMeasure())
-
-        self.nlp = spacy.load("nl_core_news_lg", disable=["tagger", "parser"])
 
     def predict(self, text):
         matches = []
@@ -44,7 +47,7 @@ class SimstringPredictor(BasePredictor):
             for start, end, ngram in self.make_ngrams(
                 text["text"][sent_start:sent_end], 3
             ):
-                query = ngram.lower()
+                query = self.stemmer.stem(ngram.lower())
                 if query in self.blacklisted:
                     continue
                 results = self.searcher.ranked_search(query, 0.7)
