@@ -22,7 +22,8 @@ class BasePredictor:
 class SimstringPredictor(BasePredictor):
     def __init__(self, data_path):
         self.known_entities = []
-        for fname in Path(data_path).glob("*.jsonl"):
+        data_path = Path(data_path)
+        for fname in data_path.glob("*.jsonl"):
             self.known_entities.extend(read_jsonl(fname))
 
         with open(data_path / "blacklist") as f:

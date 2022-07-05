@@ -23,6 +23,14 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def processing_time_logger(request, call_next):
+    start_time = perf_counter()
+    response = await call_next(request)
+    response.headers["X-Process-Time"] = f"{perf_counter() - start_time:.3f}s"
+    return response
+
+
 @app.get("/")
 def status():
     return ""
@@ -49,26 +57,17 @@ def settings():
 
 @app.post("/entities/", response_model=List[EntityTaggerResponse])
 def entities(req: List[TextRequest]):
-    start_time = perf_counter()
-    results = [get_entities(r.text, r.model_name) for r in req]
-    duration = perf_counter() - start_time
-    logger.info(f"entities: processed {len(req)} in {duration:.2f}s")
-    return results
+    logger.info(f"> entities - processing {len(req)} items")
+    return [get_entities(r.text, r.model_name) for r in req]
 
 
 @app.post("/search/", response_model=List[SearchResponse])
 def search(req: List[TextRequest]):
-    start_time = perf_counter()
-    results = [get_search_results(r.text, r.model_name) for r in req]
-    duration = perf_counter() - start_time
-    logger.info(f"search: processed {len(req)} in {duration:.2f}s")
-    return results
+    logger.info(f"> search - processing {len(req)} items")
+    return [get_search_results(r.text, r.model_name) for r in req]
 
 
 @app.post("/summarize/", response_model=List[SummaryResponse])
 def summarize(req: List[TextRequest]):
-    start_time = perf_counter()
-    results = [get_summary(r.text, r.model_name) for r in req]
-    duration = perf_counter() - start_time
-    logger.info(f"summarize: processed {len(req)} in {duration:.2f}s")
-    return results
+    logger.info(f"> summarize - processing {len(req)} items")
+    return [get_summary(r.text, r.model_name) for r in req]
