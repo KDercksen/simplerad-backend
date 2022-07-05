@@ -20,6 +20,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origin_regex="http://localhost:.*",
     allow_methods=["GET", "POST"],
+    expose_headers=["X-Process-Time"],
 )
 
 
