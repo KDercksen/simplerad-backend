@@ -12,6 +12,7 @@ from entities import entity_taggers, get_entities
 from schemas import EntityTaggerResponse, SearchResponse, SummaryResponse, TextRequest
 from search import get_search_results, searchers
 from summarization import get_summary
+import argparse
 
 logger = logging.getLogger("uvicorn")
 
@@ -72,3 +73,9 @@ def search(req: List[TextRequest]):
 def summarize(req: List[TextRequest]):
     logger.info(f"> summarize - processing {len(req)} items")
     return [get_summary(r.text, r.model_name) for r in req]
+
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("required")
+    args = p.parse_args()

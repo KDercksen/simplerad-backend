@@ -1,0 +1,3 @@
+jsonl_directory: "data/entity_lists/"
+char_ngram: 3
+cosim_threshold: 0.5

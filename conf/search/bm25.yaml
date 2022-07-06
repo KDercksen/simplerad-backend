@@ -1,0 +1,6 @@
+jsonl_directory: "data/entity_lists/"
+fields:
+    - title
+    - description
+b: 0.75
+k1: 1.2

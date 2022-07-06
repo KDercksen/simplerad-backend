@@ -4,9 +4,15 @@
 import re
 import json
 import nltk
+from collections import UserDict
+from gensim.utils import simple_preprocess as sp
 from pathlib import Path
 
 nltk_tokenizer = nltk.data.load("tokenizers/punkt/dutch.pickle")
+
+
+def simple_tokenize(text):
+    return sp(text, max_len=100)
 
 
 def preprocess(text: str):
@@ -41,3 +47,19 @@ def read_jsonl_dir(path):
     for fname in Path(path).glob("*.jsonl"):
         items.extend(read_jsonl(fname))
     return items
+
+
+class LazyValueDict(UserDict):
+    def __init__(self, initial_data):
+        super().__init__(initial_data)
+        self.hotkey = None
+        self.value = None
+
+    def __getitem__(self, key):
+        if key == self.hotkey:
+            # already loaded model
+            return self.value
+        # cache different model
+        self.hotkey = key
+        self.value = self.data[key]()
+        return self.value

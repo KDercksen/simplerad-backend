@@ -4,10 +4,11 @@
 from pathlib import Path
 from flair.models import SequenceTagger
 from flair.data import Sentence
-from utils import preprocess, read_jsonl
+from utils import preprocess, read_jsonl, LazyValueDict
 from typing import Dict, Set, Tuple
 import spacy
 
+from hydra import compose, initialize
 from simstring.feature_extractor.character_ngram import CharacterNgramFeatureExtractor
 from simstring.measure.cosine import CosineMeasure
 from simstring.database.dict import DictDatabase
@@ -22,22 +23,27 @@ class BasePredictor:
 
 
 class SimstringPredictor(BasePredictor):
-    def __init__(self, data_path):
+    def __init__(self):
+        with initialize("conf", version_base="1.1"):
+            cfg = compose("entities/simstring.yaml")["entities"]
+
+        self.nlp = spacy.load(cfg["spacy_model"], disable=["tagger", "parser"])
+        self.stemmer = DutchStemmer()
+
         self.known_entities = []
-        data_path = Path(data_path)
+        data_path = Path(cfg["jsonl_directory"])
         for fname in data_path.glob("*.jsonl"):
             self.known_entities.extend(read_jsonl(fname))
 
         with open(data_path / "blacklist") as f:
-            self.blacklisted = [line.strip() for line in f]
+            self.blacklisted = [self.stemmer.stem(line.strip()) for line in f]
 
-        self.nlp = spacy.load("nl_core_news_lg", disable=["tagger", "parser"])
-        self.stemmer = DutchStemmer()
-
-        self.db = DictDatabase(CharacterNgramFeatureExtractor(3))
+        self.db = DictDatabase(CharacterNgramFeatureExtractor(cfg["char_ngram"]))
         for ent in self.known_entities:
             self.db.add(self.stemmer.stem(ent["title"].lower()))
         self.searcher = Searcher(self.db, CosineMeasure())
+        self.cosim_threshold = cfg["cosim_threshold"]
+        self.word_ngram = cfg["word_ngram"]
 
     def predict(self, text):
         matches = []
@@ -45,12 +51,12 @@ class SimstringPredictor(BasePredictor):
             sent_start = sent["start"]
             sent_end = sent["end"]
             for start, end, ngram in self.make_ngrams(
-                text["text"][sent_start:sent_end], 3
+                text["text"][sent_start:sent_end], self.word_ngram
             ):
                 query = self.stemmer.stem(ngram.lower())
                 if query in self.blacklisted:
                     continue
-                results = self.searcher.ranked_search(query, 0.7)
+                results = self.searcher.ranked_search(query, self.cosim_threshold)
                 if results:
                     matches.append(
                         {
@@ -118,8 +124,10 @@ class SimstringPredictor(BasePredictor):
 class FlairPredictor(BasePredictor):
     # small wrapper around Flair entity tagger
 
-    def __init__(self, model_name):
-        self.model = SequenceTagger.load(model_name)
+    def __init__(self):
+        with initialize("conf", version_base="1.1"):
+            cfg = compose("entities/flair.yaml")["entities"]
+        self.model = SequenceTagger.load(cfg["model_name"])
 
     def predict(self, text):
         s = Sentence(text["text"])
@@ -135,10 +143,12 @@ class FlairPredictor(BasePredictor):
         ]
 
 
-entity_taggers: Dict[str, BasePredictor] = {
-    "ner-english-fast": FlairPredictor("flair/ner-english-fast"),
-    "simstring": SimstringPredictor("data/entity_lists/"),
-}
+entity_taggers = LazyValueDict(
+    {
+        "ner-english-fast": FlairPredictor,
+        "simstring": SimstringPredictor,
+    }
+)
 
 
 def get_entities(text: str, model_name: str):

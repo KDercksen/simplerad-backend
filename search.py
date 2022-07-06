@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import Dict
+import math
+from collections import defaultdict
+from functools import reduce
 
 import faiss
 from gensim.models import FastText
-from gensim.utils import simple_preprocess
+from hydra import compose, initialize
 from nltk.stem.snowball import DutchStemmer
 from simstring.database.dict import DictDatabase
 from simstring.feature_extractor.character_ngram import CharacterNgramFeatureExtractor
 from simstring.measure.cosine import CosineMeasure
 from simstring.searcher import Searcher
 
-from utils import preprocess, read_jsonl_dir
+from utils import LazyValueDict, preprocess, read_jsonl_dir, simple_tokenize
 
 
 class BaseSearcher:
@@ -20,20 +22,100 @@ class BaseSearcher:
         raise NotImplementedError("subclass should implement this function")
 
 
-class SimstringJSONLFolderSearcher(BaseSearcher):
-    def __init__(self, jsonl_directory):
+class BaseTwoStageSearcher(BaseSearcher):
+    def rank(self, query_terms, indexes):
+        raise NotImplementedError("subclass should implement this function")
+
+
+class BaseInvertedIndex(BaseTwoStageSearcher):
+    def __init__(self, jsonl_directory, fields):
         self.known_entities = read_jsonl_dir(jsonl_directory)
         self.stemmer = DutchStemmer()
-        self.db = DictDatabase(CharacterNgramFeatureExtractor(3))
+
+        # build inverted index on title, description fields
+        self.index = defaultdict(set)
+        total_len = 0
+        for i, ent in enumerate(self.known_entities):
+            for field in fields:
+                content = simple_tokenize(ent[field])
+                total_len += len(content)
+                for term in content:
+                    self.index[self.stemmer.stem(term)].add(i)
+        self.avg_doc_len = total_len / len(self.known_entities)
+
+    def search(self, text: str):
+        query_terms = [self.stemmer.stem(term) for term in simple_tokenize(text)]
+        ent_indexes = reduce(
+            lambda x, y: x | y, [self.index[term] for term in query_terms]
+        )
+        scores = self.rank(query_terms, ent_indexes)
+        return [
+            {"score": score, "entity": self.known_entities[idx]}
+            for (score, idx) in sorted(zip(scores, ent_indexes), reverse=True)
+        ]
+
+
+class BM25(BaseInvertedIndex):
+    def __init__(self):
+        with initialize("conf", version_base="1.1"):
+            cfg = compose("search/bm25.yaml")["search"]
+
+        super().__init__(cfg["jsonl_directory"], cfg["fields"])
+
+        self.b = cfg["b"]
+        self.k1 = cfg["k1"]
+
+    def rank(self, query_terms, indexes):
+        # query_terms is already preprocessed
+        entities = [self.known_entities[i] for i in indexes]
+        entities = [
+            [
+                self.stemmer.stem(term)
+                for term in simple_tokenize(
+                    "\n".join([ent["title"], ent["description"]])
+                )
+            ]
+            for ent in entities
+        ]
+
+        scores = []
+        for i, ent in zip(indexes, entities):
+            score = 0.0
+            for term in query_terms:
+                idf = math.log(
+                    (
+                        (len(self.known_entities) - len(self.index[term]) + 0.5)
+                        / (len(self.index[term]) + 0.5)
+                    )
+                    + 1
+                )
+                tf = ent.count(term)
+                tmp = (tf * (self.k1 + 1)) / (
+                    tf + self.k1 * (1 - self.b + self.b * (len(ent) / self.avg_doc_len))
+                )
+                score += idf * tmp
+            scores.append(score)
+        return scores
+
+
+class SimstringJSONLFolderSearcher(BaseSearcher):
+    def __init__(self):
+        with initialize("conf", version_base="1.1"):
+            cfg = compose("search/simstring.yaml")["search"]
+
+        self.known_entities = read_jsonl_dir(cfg["jsonl_directory"])
+        self.stemmer = DutchStemmer()
+        self.db = DictDatabase(CharacterNgramFeatureExtractor(cfg["char_ngram"]))
         self.title2entity = {}
         for ent in self.known_entities:
             stemmed_title = self.stemmer.stem(ent["title"].lower())
             self.db.add(stemmed_title)
             self.title2entity[stemmed_title] = ent
         self.searcher = Searcher(self.db, CosineMeasure())
+        self.cosim_threshold = cfg["cosim_threshold"]
 
     def search(self, text: str):
-        matches = self.searcher.ranked_search(text.lower(), 0.5)
+        matches = self.searcher.ranked_search(text.lower(), self.cosim_threshold)
         return [
             {"score": match[0], "entity": self.title2entity[match[1]]}
             for match in matches
@@ -41,23 +123,26 @@ class SimstringJSONLFolderSearcher(BaseSearcher):
 
 
 class FastTextFAISSJSONLFolderSearcher(BaseSearcher):
-    def __init__(self, jsonl_directory, embedding_model):
-        self.known_entities = read_jsonl_dir(jsonl_directory)
-        self.model = FastText.load(embedding_model)
+    def __init__(self):
+        with initialize("conf", version_base="1.1"):
+            cfg = compose("search/faiss.yaml")["search"]
+
+        self.known_entities = read_jsonl_dir(cfg["jsonl_directory"])
+        self.model = FastText.load(cfg["fasttext_path"])
         self.index = faiss.IndexFlatL2(self.model.vector_size)
 
         # initialize index
         for ent in self.known_entities:
-            vector = self.model.wv.get_sentence_vector(
-                simple_preprocess(ent["title"], max_len=100)
-            )[None, ...]
+            vector = self.model.wv.get_sentence_vector(simple_tokenize(ent["title"]))[
+                None, ...
+            ]
             self.index.add(vector)
 
+        self.top_n = cfg["top_n"]
+
     def search(self, text: str):
-        vector = self.model.wv.get_sentence_vector(
-            simple_preprocess(text, max_len=100)
-        )[None, ...]
-        distances, indexes = self.index.search(vector, 10)
+        vector = self.model.wv.get_sentence_vector(simple_tokenize(text))[None, ...]
+        distances, indexes = self.index.search(vector, self.top_n)
         distances, indexes = distances[0].tolist(), indexes[0].tolist()
         return [
             {"score": d, "entity": self.known_entities[i]}
@@ -65,12 +150,13 @@ class FastTextFAISSJSONLFolderSearcher(BaseSearcher):
         ]
 
 
-searchers: Dict[str, BaseSearcher] = {
-    "simstring": SimstringJSONLFolderSearcher("data/entity_lists/"),
-    "faiss": FastTextFAISSJSONLFolderSearcher(
-        "data/entity_lists/", "models/fasttext_cbow_300_5epochs.bin"
-    ),
-}
+searchers = LazyValueDict(
+    {
+        "simstring": SimstringJSONLFolderSearcher,
+        "faiss": FastTextFAISSJSONLFolderSearcher,
+        "bm25": BM25,
+    }
+)
 
 
 def get_search_results(text: str, model_name: str):
