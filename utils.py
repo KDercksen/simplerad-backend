@@ -4,6 +4,7 @@
 import re
 import json
 import nltk
+from pathlib import Path
 
 nltk_tokenizer = nltk.data.load("tokenizers/punkt/dutch.pickle")
 
@@ -33,3 +34,10 @@ def preprocess(text: str):
 def read_jsonl(fname):
     with open(fname) as f:
         return [json.loads(line) for line in f]
+
+
+def read_jsonl_dir(path):
+    items = []
+    for fname in Path(path).glob("*.jsonl"):
+        items.extend(read_jsonl(fname))
+    return items
