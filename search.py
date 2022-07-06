@@ -2,15 +2,17 @@
 # -*- coding: utf-8 -*-
 
 from typing import Dict
-from utils import preprocess, read_jsonl
-from pathlib import Path
 
+import faiss
+from gensim.models import FastText
+from gensim.utils import simple_preprocess
+from nltk.stem.snowball import DutchStemmer
+from simstring.database.dict import DictDatabase
 from simstring.feature_extractor.character_ngram import CharacterNgramFeatureExtractor
 from simstring.measure.cosine import CosineMeasure
-from simstring.database.dict import DictDatabase
 from simstring.searcher import Searcher
 
-from nltk.stem.snowball import DutchStemmer
+from utils import preprocess, read_jsonl_dir
 
 
 class BaseSearcher:
@@ -19,11 +21,8 @@ class BaseSearcher:
 
 
 class SimstringJSONLFolderSearcher(BaseSearcher):
-    def __init__(self, directory: Path):
-        self.known_entities = []
-        for filename in directory.glob("*.jsonl"):
-            self.known_entities.extend(read_jsonl(filename))
-
+    def __init__(self, jsonl_directory):
+        self.known_entities = read_jsonl_dir(jsonl_directory)
         self.stemmer = DutchStemmer()
         self.db = DictDatabase(CharacterNgramFeatureExtractor(3))
         self.title2entity = {}
@@ -41,8 +40,36 @@ class SimstringJSONLFolderSearcher(BaseSearcher):
         ]
 
 
+class FastTextFAISSJSONLFolderSearcher(BaseSearcher):
+    def __init__(self, jsonl_directory, embedding_model):
+        self.known_entities = read_jsonl_dir(jsonl_directory)
+        self.model = FastText.load(embedding_model)
+        self.index = faiss.IndexFlatL2(self.model.vector_size)
+
+        # initialize index
+        for ent in self.known_entities:
+            vector = self.model.wv.get_sentence_vector(
+                simple_preprocess(ent["title"], max_len=100)
+            )[None, ...]
+            self.index.add(vector)
+
+    def search(self, text: str):
+        vector = self.model.wv.get_sentence_vector(
+            simple_preprocess(text, max_len=100)
+        )[None, ...]
+        distances, indexes = self.index.search(vector, 10)
+        distances, indexes = distances[0].tolist(), indexes[0].tolist()
+        return [
+            {"score": d, "entity": self.known_entities[i]}
+            for d, i in sorted(zip(distances, indexes), reverse=True)
+        ]
+
+
 searchers: Dict[str, BaseSearcher] = {
-    "simstring": SimstringJSONLFolderSearcher(Path("data/entity_lists/"))
+    "simstring": SimstringJSONLFolderSearcher("data/entity_lists/"),
+    "faiss": FastTextFAISSJSONLFolderSearcher(
+        "data/entity_lists/", "models/fasttext_cbow_300_5epochs.bin"
+    ),
 }
 
 
