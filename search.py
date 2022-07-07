@@ -145,8 +145,8 @@ class FastTextFAISSJSONLFolderSearcher(BaseSearcher):
         distances, indexes = self.index.search(vector, self.top_n)
         distances, indexes = distances[0].tolist(), indexes[0].tolist()
         return [
-            {"score": d, "entity": self.known_entities[i]}
-            for d, i in sorted(zip(distances, indexes), reverse=True)
+            {"score": 1 - d, "entity": self.known_entities[i]}
+            for d, i in sorted(zip(distances, indexes))
         ]
 
 
