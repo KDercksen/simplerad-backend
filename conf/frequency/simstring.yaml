@@ -1,0 +1,2 @@
+spacy_model: "nl_core_news_lg"
+json_path: "data/entity_stats/frequencies.json"

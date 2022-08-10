@@ -1,3 +1,0 @@
-tokenizer: "google/mt5-base"
-model: "google/mt5-base"
-max_generation_length: 128

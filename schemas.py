@@ -26,6 +26,10 @@ class SummaryResponse(BaseModel):
     summary: str
 
 
+class FrequencyResponse(BaseModel):
+    frequency: float
+
+
 class SearchEntity(BaseModel):
     title: str
     description: str

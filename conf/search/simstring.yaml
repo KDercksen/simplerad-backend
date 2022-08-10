@@ -1,3 +1,4 @@
 jsonl_directory: "data/entity_lists/"
+spacy_model: "nl_core_news_sm"
 char_ngram: 3
 cosim_threshold: 0.5

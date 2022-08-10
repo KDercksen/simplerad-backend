@@ -4,17 +4,15 @@
 from pathlib import Path
 from flair.models import SequenceTagger
 from flair.data import Sentence
-from utils import preprocess, read_jsonl, LazyValueDict
+from utils import preprocess, read_jsonl, LazyValueDict, lemmatize_tokens
 from typing import Dict, Set, Tuple
 import spacy
 
-from hydra import compose, initialize
+from hydra import compose
 from simstring.feature_extractor.character_ngram import CharacterNgramFeatureExtractor
 from simstring.measure.cosine import CosineMeasure
 from simstring.database.dict import DictDatabase
 from simstring.searcher import Searcher
-
-from nltk.stem.snowball import DutchStemmer
 
 
 class BasePredictor:
@@ -24,11 +22,9 @@ class BasePredictor:
 
 class SimstringPredictor(BasePredictor):
     def __init__(self):
-        with initialize("conf", version_base="1.1"):
-            cfg = compose("entities/simstring.yaml")["entities"]
+        cfg = compose(config_name="config")["entities"]
 
         self.nlp = spacy.load(cfg["spacy_model"], disable=["tagger", "parser"])
-        self.stemmer = DutchStemmer()
 
         self.known_entities = []
         data_path = Path(cfg["jsonl_directory"])
@@ -36,11 +32,15 @@ class SimstringPredictor(BasePredictor):
             self.known_entities.extend(read_jsonl(fname))
 
         with open(data_path / "blacklist") as f:
-            self.blacklisted = [self.stemmer.stem(line.strip()) for line in f]
+            self.blacklisted = []
+            for line in f:
+                self.blacklisted.append(
+                    lemmatize_tokens(line.strip().lower(), self.nlp)
+                )
 
         self.db = DictDatabase(CharacterNgramFeatureExtractor(cfg["char_ngram"]))
         for ent in self.known_entities:
-            self.db.add(self.stemmer.stem(ent["title"].lower()))
+            self.db.add(lemmatize_tokens(ent["title"].lower(), self.nlp))
         self.searcher = Searcher(self.db, CosineMeasure())
         self.cosim_threshold = cfg["cosim_threshold"]
         self.word_ngram = cfg["word_ngram"]
@@ -53,7 +53,7 @@ class SimstringPredictor(BasePredictor):
             for start, end, ngram in self.make_ngrams(
                 text["text"][sent_start:sent_end], self.word_ngram
             ):
-                query = self.stemmer.stem(ngram.lower())
+                query = lemmatize_tokens(ngram.lower(), self.nlp)
                 if query in self.blacklisted:
                     continue
                 results = self.searcher.ranked_search(query, self.cosim_threshold)
@@ -125,8 +125,7 @@ class FlairPredictor(BasePredictor):
     # small wrapper around Flair entity tagger
 
     def __init__(self):
-        with initialize("conf", version_base="1.1"):
-            cfg = compose("entities/flair.yaml")["entities"]
+        cfg = compose(config_name="config")["entities"]
         self.model = SequenceTagger.load(cfg["model_name"])
 
     def predict(self, text):

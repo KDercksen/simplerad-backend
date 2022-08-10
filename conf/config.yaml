@@ -1,0 +1,5 @@
+defaults:
+  - entities: simstring
+  - summarize: transformer_abstractive
+  - search: simstring
+  - frequency: simstring

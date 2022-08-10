@@ -1,3 +1,4 @@
+spacy_model: "nl_core_news_sm"
 jsonl_directory: "data/entity_lists/"
 fields:
     - title

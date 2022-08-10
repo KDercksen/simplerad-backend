@@ -37,6 +37,15 @@ def preprocess(text: str):
     }
 
 
+def lemmatize_tokens(s, nlp):
+    return " ".join(token.lemma_ for token in nlp(s))
+
+
+def read_json(fname):
+    with open(fname) as f:
+        return json.load(f)
+
+
 def read_jsonl(fname):
     with open(fname) as f:
         return [json.loads(line) for line in f]

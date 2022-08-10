@@ -9,10 +9,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from entities import entity_taggers, get_entities
-from schemas import EntityTaggerResponse, SearchResponse, SummaryResponse, TextRequest
+from schemas import (
+    EntityTaggerResponse,
+    FrequencyResponse,
+    SearchResponse,
+    SummaryResponse,
+    TextRequest,
+)
 from search import get_search_results, searchers
-from summarization import get_summary
-import argparse
+from summarization import get_summaries, summarizers
+from frequency import get_frequencies, frequencizers
+from hydra import initialize
 
 logger = logging.getLogger("uvicorn")
 
@@ -23,6 +30,8 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     expose_headers=["X-Process-Time"],
 )
+
+initialize(config_path="conf", version_base=None)
 
 
 @app.middleware("http")
@@ -48,11 +57,17 @@ def settings():
             }
         },
         "summarize": {
-            "engine": {"default": "custom", "values": ["custom"]},
-            "prompt": {"default": "summarize: "},
+            "engine": {
+                "default": "transformer_abstractive",
+                "values": list(summarizers.keys()),
+            },
+            "prompt": {"default": ""},
         },
         "search": {
             "engine": {"values": list(searchers.keys()), "default": "simstring"}
+        },
+        "frequency": {
+            "engine": {"values": list(frequencizers.keys()), "default": "simstring"}
         },
     }
 
@@ -72,10 +87,10 @@ def search(req: List[TextRequest]):
 @app.post("/summarize/", response_model=List[SummaryResponse])
 def summarize(req: List[TextRequest]):
     logger.info(f"> summarize - processing {len(req)} items")
-    return [get_summary(r.text, r.model_name) for r in req]
+    return [get_summaries(r.text, r.model_name) for r in req]
 
 
-if __name__ == "__main__":
-    p = argparse.ArgumentParser()
-    p.add_argument("required")
-    args = p.parse_args()
+@app.post("/frequency/", response_model=List[FrequencyResponse])
+def frequency(req: List[TextRequest]):
+    logger.info(f"> frequency - processing {len(req)} items")
+    return [get_frequencies(r.text, r.model_name) for r in req]
