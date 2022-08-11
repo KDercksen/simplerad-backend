@@ -65,7 +65,7 @@ class LazyValueDict(UserDict):
         self.value = None
 
     def __getitem__(self, key):
-        if key == self.hotkey:
+        if key == self.hotkey and self.value:
             # already loaded model
             return self.value
         # cache different model

@@ -14,7 +14,9 @@ class BaseFrequency:
 
 class SimstringGeneratedFrequencies(BaseFrequency):
     def __init__(self):
-        cfg = compose(config_name="config")["frequency"]
+        cfg = compose(config_name="config", overrides=["frequency=simstring"])[
+            "frequency"
+        ]
         data_path = Path(cfg["json_path"])
         self.frequencies = read_json(data_path)
         self.nlp = spacy.load(cfg["spacy_model"])

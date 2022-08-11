@@ -22,7 +22,9 @@ class BasePredictor:
 
 class SimstringPredictor(BasePredictor):
     def __init__(self):
-        cfg = compose(config_name="config")["entities"]
+        cfg = compose(config_name="config", overrides=["entities=simstring"])[
+            "entities"
+        ]
 
         self.nlp = spacy.load(cfg["spacy_model"], disable=["tagger", "parser"])
 
@@ -125,7 +127,7 @@ class FlairPredictor(BasePredictor):
     # small wrapper around Flair entity tagger
 
     def __init__(self):
-        cfg = compose(config_name="config")["entities"]
+        cfg = compose(config_name="config", overrides=["entities=flair"])["entities"]
         self.model = SequenceTagger.load(cfg["model_name"])
 
     def predict(self, text):
@@ -144,7 +146,7 @@ class FlairPredictor(BasePredictor):
 
 entity_taggers = LazyValueDict(
     {
-        "ner-english-fast": FlairPredictor,
+        "flair": FlairPredictor,
         "simstring": SimstringPredictor,
     }
 )

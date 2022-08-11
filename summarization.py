@@ -16,7 +16,9 @@ class BaseSummarizer:
 
 class TransformerAbstractiveSummarizer(BaseSummarizer):
     def __init__(self):
-        cfg = compose(config_name="config")["summarize"]
+        cfg = compose(
+            config_name="config", overrides=["summarization=transformer_abstractive"]
+        )["summarize"]
         self.device = "cuda" if t.cuda.is_available() else "cpu"
         self.tokenizer = AutoTokenizer.from_pretrained(cfg["tokenizer"])
         self.model = AutoModelForSeq2SeqLM.from_pretrained(cfg["model"]).to(self.device)
@@ -32,7 +34,9 @@ class TransformerAbstractiveSummarizer(BaseSummarizer):
 
 class TransformerExtractiveSummarizer(BaseSummarizer):
     def __init__(self):
-        cfg = compose(config_name="config")["summarize"]
+        cfg = compose(
+            config_name="config", overrides=["summarization=transformer_extractive"]
+        )["summarize"]
         self.device = "cuda" if t.cuda.is_available() else "cpu"
         self.tokenizer = AutoTokenizer.from_pretrained(cfg["tokenizer"])
         self.model = AutoModelForSeq2SeqLM.from_pretrained(cfg["model"]).to(self.device)

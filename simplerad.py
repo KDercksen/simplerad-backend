@@ -47,7 +47,7 @@ def status():
     return ""
 
 
-@app.get("/settings")
+@app.get("/settings/")
 def settings():
     return {
         "entities": {

@@ -35,6 +35,7 @@ class BaseTwoStageSearcher(BaseSearcher):
 
 class BaseInvertedIndex(BaseTwoStageSearcher):
     def __init__(self, nlp, jsonl_directory, fields):
+        print("Initializing inverted index")
         self.known_entities = read_jsonl_dir(jsonl_directory)
         self.nlp = spacy.load(nlp)
 
@@ -45,14 +46,19 @@ class BaseInvertedIndex(BaseTwoStageSearcher):
             for field in fields:
                 content = simple_tokenize(ent[field])
                 total_len += len(content)
-                for term in content:
-                    self.index[lemmatize_tokens(term, self.nlp)].add(i)
+                lem_tokens = lemmatize_tokens(" ".join(content), self.nlp).split()
+                for term in lem_tokens:
+                    self.index[term].add(i)
         self.avg_doc_len = total_len / len(self.known_entities)
+        print("inverted index done")
 
     def search(self, text: str):
-        query_terms = [
-            lemmatize_tokens(term, self.nlp) for term in simple_tokenize(text)
-        ]
+        query_terms = lemmatize_tokens(
+            " ".join(simple_tokenize(text)), self.nlp
+        ).split()
+        if len(query_terms) == 0:
+            return []
+
         ent_indexes = reduce(
             lambda x, y: x | y, [self.index[term] for term in query_terms]
         )
@@ -65,27 +71,32 @@ class BaseInvertedIndex(BaseTwoStageSearcher):
 
 class BM25(BaseInvertedIndex):
     def __init__(self):
-        cfg = compose(config_name="config")["search"]
+        cfg = compose(config_name="config", overrides=["search=bm25"])["search"]
 
         super().__init__(cfg["spacy_model"], cfg["jsonl_directory"], cfg["fields"])
 
         self.b = cfg["b"]
         self.k1 = cfg["k1"]
+        print("BM25 initialized")
 
     def rank(self, query_terms, indexes):
         # query_terms is already preprocessed
+        print("Ranking: preprocess")
         entities = [self.known_entities[i] for i in indexes]
         entities = [
             [
-                lemmatize_tokens(term, self.nlp)
-                for term in simple_tokenize(
-                    "\n".join([ent["title"], ent["description"]])
-                )
+                lemmatize_tokens(
+                    " ".join(
+                        simple_tokenize("\n".join([ent["title"], ent["description"]]))
+                    ),
+                    self.nlp,
+                ).split()
             ]
             for ent in entities
         ]
 
         scores = []
+        print("Ranking: calculating scores")
         for i, ent in zip(indexes, entities):
             score = 0.0
             for term in query_terms:
@@ -107,7 +118,7 @@ class BM25(BaseInvertedIndex):
 
 class SimstringJSONLFolderSearcher(BaseSearcher):
     def __init__(self):
-        cfg = compose(config_name="config")["search"]
+        cfg = compose(config_name="config", overrides=["search=simstring"])["search"]
 
         self.known_entities = read_jsonl_dir(cfg["jsonl_directory"])
         self.nlp = spacy.load(cfg["spacy_model"])
@@ -130,7 +141,7 @@ class SimstringJSONLFolderSearcher(BaseSearcher):
 
 class FastTextFAISSJSONLFolderSearcher(BaseSearcher):
     def __init__(self):
-        cfg = compose(config_name="config")["search"]
+        cfg = compose(config_name="config", overrides=["search=faiss"])["search"]
 
         self.known_entities = read_jsonl_dir(cfg["jsonl_directory"])
         self.model = FastText.load(cfg["fasttext_path"])
@@ -138,9 +149,10 @@ class FastTextFAISSJSONLFolderSearcher(BaseSearcher):
 
         # initialize index
         for ent in self.known_entities:
-            vector = self.model.wv.get_sentence_vector(simple_tokenize(ent["title"]))[
-                None, ...
-            ]
+            tok = simple_tokenize(ent["title"])
+            if len(tok) == 0:
+                continue
+            vector = self.model.wv.get_sentence_vector(tok)[None, ...]
             self.index.add(vector)
 
         self.top_n = cfg["top_n"]
