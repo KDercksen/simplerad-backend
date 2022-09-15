@@ -11,6 +11,10 @@ class TextRequest(BaseModel):
     model_name: str
 
 
+class AddToExplanationCacheRequest(TextRequest):
+    term: str
+
+
 class EntityTaggerResponse(BaseModel):
     class Span(BaseModel):
         start: int
@@ -44,3 +48,7 @@ class SearchResponse(BaseModel):
         entity: SearchEntity
 
     data: List[SingleSearchResult]
+
+
+class ExplanationResponse(BaseModel):
+    data: List[str]

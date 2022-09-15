@@ -3,3 +3,4 @@ defaults:
   - summarize: transformer_abstractive
   - search: simstring
   - frequency: simstring
+  - explanation: gpt3

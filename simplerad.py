@@ -11,14 +11,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from entities import entity_taggers, get_entities
 from schemas import (
     EntityTaggerResponse,
+    ExplanationResponse,
     FrequencyResponse,
     SearchResponse,
     SummaryResponse,
+    AddToExplanationCacheRequest,
     TextRequest,
 )
 from search import get_search_results, searchers
 from summarization import get_summaries, summarizers
 from frequency import get_frequencies, frequencizers
+from explanation import (
+    propose_explanation,
+    add_explanation,
+    get_explanations,
+    explainers,
+)
 from hydra import initialize
 
 logger = logging.getLogger("uvicorn")
@@ -69,6 +77,7 @@ def settings():
         "frequency": {
             "engine": {"values": list(frequencizers.keys()), "default": "simstring"}
         },
+        "explainer": {"engine": {"values": list(explainers.keys()), "default": "gpt3"}},
     }
 
 
@@ -94,3 +103,22 @@ def summarize(req: List[TextRequest]):
 def frequency(req: List[TextRequest]):
     logger.info(f"> frequency - processing {len(req)} items")
     return [get_frequencies(r.text, r.model_name) for r in req]
+
+
+@app.post("/explanation/get/", response_model=List[ExplanationResponse])
+def get_explanation_from_cache(req: List[TextRequest]):
+    logger.info(f"> get explanation from cache: processing {len(req)} items")
+    return [get_explanations(r.text, r.model_name) for r in req]
+
+
+@app.post("/explanation/propose/", response_model=List[ExplanationResponse])
+def propose_explanation_to_user(req: List[TextRequest]):
+    logger.info(f"> propose new explanation: processing {len(req)} items")
+    return [propose_explanation(r.text, r.model_name) for r in req]
+
+
+@app.put("/explanation/add/")
+def add_explanation_to_cache(req: List[AddToExplanationCacheRequest]):
+    logger.info(f"> add explanation to cache: processing {len(req)} items")
+    for r in req:
+        add_explanation(r.text, r.model_name, r.term)
