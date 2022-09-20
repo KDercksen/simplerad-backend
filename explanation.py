@@ -85,5 +85,6 @@ def propose_explanation(text: str, model_name: str):
 
 
 def add_explanation(text: str, model_name: str, term: str):
-    preprocessed = preprocess(term)
-    explainers[model_name].add_to_cache(preprocessed["text"], text)
+    preprocessed = preprocess(term)  # key
+    # text is description
+    explainers[model_name].add_to_cache(preprocessed["text"], text)  # key, value
