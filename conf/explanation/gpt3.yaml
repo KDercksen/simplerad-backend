@@ -3,4 +3,4 @@ preprompt: "Korte uitleg voor radiologische term "
 temperature: 0.7
 max_tokens: 128
 shelve_path: "data/gpt3_shelve"
-spacy_model: "nl_core_news_sm"
+spacy_model: "nl_core_news_lg"
