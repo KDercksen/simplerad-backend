@@ -35,7 +35,6 @@ class BaseTwoStageSearcher(BaseSearcher):
 
 class BaseInvertedIndex(BaseTwoStageSearcher):
     def __init__(self, nlp, jsonl_directory, fields):
-        print("Initializing inverted index")
         self.known_entities = read_jsonl_dir(jsonl_directory)
         self.nlp = spacy.load(nlp)
 
@@ -50,7 +49,6 @@ class BaseInvertedIndex(BaseTwoStageSearcher):
                 for term in lem_tokens:
                     self.index[term].add(i)
         self.avg_doc_len = total_len / len(self.known_entities)
-        print("inverted index done")
 
     def search(self, text: str):
         query_terms = lemmatize_tokens(
@@ -77,11 +75,9 @@ class BM25(BaseInvertedIndex):
 
         self.b = cfg["b"]
         self.k1 = cfg["k1"]
-        print("BM25 initialized")
 
     def rank(self, query_terms, indexes):
         # query_terms is already preprocessed
-        print("Ranking: preprocess")
         entities = [self.known_entities[i] for i in indexes]
         entities = [
             [
@@ -96,7 +92,6 @@ class BM25(BaseInvertedIndex):
         ]
 
         scores = []
-        print("Ranking: calculating scores")
         for i, ent in zip(indexes, entities):
             score = 0.0
             for term in query_terms:
@@ -114,6 +109,23 @@ class BM25(BaseInvertedIndex):
                 score += idf * tmp
             scores.append(score)
         return scores
+
+
+class ExactJSONLFolderSearcher(BaseSearcher):
+    def __init__(self):
+        cfg = compose(config_name="config", overrides=["search=exact"])["search"]
+        self.known_entities = read_jsonl_dir(cfg["jsonl_directory"])
+
+    def search(self, text: str):
+        return sorted(
+            [
+                {"score": 1, "entity": entity}
+                for entity in self.known_entities
+                if text.lower() in entity["title"]
+                or text.lower() in entity["description"]
+            ],
+            key=lambda x: x["entity"]["title"],
+        )
 
 
 class SimstringJSONLFolderSearcher(BaseSearcher):
@@ -169,6 +181,7 @@ class FastTextFAISSJSONLFolderSearcher(BaseSearcher):
 
 searchers = LazyValueDict(
     {
+        "exact": ExactJSONLFolderSearcher,
         "simstring": SimstringJSONLFolderSearcher,
         "faiss": FastTextFAISSJSONLFolderSearcher,
         "bm25": BM25,
