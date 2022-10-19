@@ -19,7 +19,6 @@ from utils import (
     preprocess,
     read_jsonl_dir,
     simple_tokenize,
-    lemmatize_tokens,
 )
 
 
@@ -39,21 +38,19 @@ class BaseInvertedIndex(BaseTwoStageSearcher):
         self.nlp = spacy.load(nlp)
 
         # build inverted index on title, description fields
+        # TODO: add support for synonyms here as well?
         self.index = defaultdict(set)
         total_len = 0
         for i, ent in enumerate(self.known_entities):
             for field in fields:
                 content = simple_tokenize(ent[field])
                 total_len += len(content)
-                lem_tokens = lemmatize_tokens(" ".join(content), self.nlp).split()
-                for term in lem_tokens:
+                for term in content:
                     self.index[term].add(i)
         self.avg_doc_len = total_len / len(self.known_entities)
 
     def search(self, text: str):
-        query_terms = lemmatize_tokens(
-            " ".join(simple_tokenize(text)), self.nlp
-        ).split()
+        query_terms = simple_tokenize(text)
         if len(query_terms) == 0:
             return []
 
@@ -80,14 +77,9 @@ class BM25(BaseInvertedIndex):
         # query_terms is already preprocessed
         entities = [self.known_entities[i] for i in indexes]
         entities = [
-            [
-                lemmatize_tokens(
-                    " ".join(
-                        simple_tokenize("\n".join([ent["title"], ent["description"]]))
-                    ),
-                    self.nlp,
-                ).split()
-            ]
+            simple_tokenize(
+                "\n".join(ent.get("synonyms", []) + [ent["title"], ent["description"]])
+            )
             for ent in entities
         ]
 
@@ -123,6 +115,7 @@ class ExactJSONLFolderSearcher(BaseSearcher):
                 for entity in self.known_entities
                 if text.lower() in entity["title"]
                 or text.lower() in entity["description"]
+                or any(text.lower() in s for s in entity.get("synonyms", []))
             ],
             key=lambda x: x["entity"]["title"],
         )
@@ -137,18 +130,28 @@ class SimstringJSONLFolderSearcher(BaseSearcher):
         self.db = DictDatabase(CharacterNgramFeatureExtractor(cfg["char_ngram"]))
         self.title2entity = {}
         for ent in self.known_entities:
-            stemmed_title = lemmatize_tokens(ent["title"].lower(), self.nlp)
+            stemmed_title = ent["title"].lower()
             self.db.add(stemmed_title)
             self.title2entity[stemmed_title] = ent
+            for s in ent.get("synonyms", []):
+                stemmed_s = s.lower()
+                self.db.add(stemmed_s)
+                self.title2entity[stemmed_s] = ent
+
         self.searcher = Searcher(self.db, CosineMeasure())
+        print(self.searcher.search("adnex", 0.3))
         self.cosim_threshold = cfg["cosim_threshold"]
 
     def search(self, text: str):
         matches = self.searcher.ranked_search(text.lower(), self.cosim_threshold)
-        return [
-            {"score": match[0], "entity": self.title2entity[match[1]]}
-            for match in matches
-        ]
+        results = []
+        seen = set()
+        for match in matches:
+            x = {"score": match[0], "entity": self.title2entity[match[1]]}
+            if (t := x["entity"]["title"]) not in seen:
+                results.append(x)
+                seen.add(t)
+        return results
 
 
 class FastTextFAISSJSONLFolderSearcher(BaseSearcher):
@@ -160,6 +163,7 @@ class FastTextFAISSJSONLFolderSearcher(BaseSearcher):
         self.index = faiss.IndexFlatL2(self.model.vector_size)
 
         # initialize index
+        # TODO: support for synonyms?
         for ent in self.known_entities:
             tok = simple_tokenize(ent["title"])
             if len(tok) == 0:

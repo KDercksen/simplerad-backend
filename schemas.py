@@ -31,7 +31,8 @@ class SummaryResponse(BaseModel):
 
 
 class FrequencyResponse(BaseModel):
-    frequency: float
+    estimated_frequency: float
+    sample_size: float
 
 
 class SearchEntity(BaseModel):

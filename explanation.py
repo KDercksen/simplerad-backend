@@ -10,7 +10,7 @@ import spacy
 from dotenv import dotenv_values
 from hydra import compose
 
-from utils import LazyValueDict, lemmatize_tokens, preprocess
+from utils import LazyValueDict, preprocess
 
 
 class BaseExplainer:
@@ -45,7 +45,7 @@ class GPT3CacheExplainer(BaseExplainer):
 
     def explain(self, text: str):
         with shelve.open(self.shelve_path) as db:
-            return db["dict"][lemmatize_tokens(text, self.nlp)]  # type: ignore
+            return db["dict"][text]  # type: ignore
 
     def propose(self, text: str):
         # make prompt:
@@ -61,7 +61,7 @@ class GPT3CacheExplainer(BaseExplainer):
     def add_to_cache(self, key: str, text: str):
         with shelve.open(self.shelve_path) as db:
             tmp = db["dict"]
-            tmp[lemmatize_tokens(key, self.nlp)].append(text)  # type: ignore
+            tmp[key].append(text)  # type: ignore
             db["dict"] = tmp
 
 

@@ -75,7 +75,7 @@ def settings():
             "engine": {"values": list(searchers.keys()), "default": "simstring"}
         },
         "frequency": {
-            "engine": {"values": list(frequencizers.keys()), "default": "simstring"}
+            "engine": {"values": list(frequencizers.keys()), "default": "transformer"}
         },
         "explanation": {
             "engine": {"values": list(explainers.keys()), "default": "gpt3"}

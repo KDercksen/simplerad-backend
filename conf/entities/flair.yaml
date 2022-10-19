@@ -1,1 +1,1 @@
-model_name: "flair/ner-english-fast"
+model_name: "/home/koen/projects/mihracle/models/flair_simplerad/best-model.pt"

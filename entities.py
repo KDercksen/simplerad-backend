@@ -4,7 +4,7 @@
 from pathlib import Path
 from flair.models import SequenceTagger
 from flair.data import Sentence
-from utils import preprocess, read_jsonl, LazyValueDict, lemmatize_tokens
+from utils import preprocess, read_jsonl, LazyValueDict
 from typing import Dict, Set, Tuple
 import spacy
 
@@ -36,13 +36,13 @@ class SimstringPredictor(BasePredictor):
         with open(data_path / "blacklist") as f:
             self.blacklisted = []
             for line in f:
-                self.blacklisted.append(
-                    lemmatize_tokens(line.strip().lower(), self.nlp)
-                )
+                self.blacklisted.append(line.strip().lower())
 
         self.db = DictDatabase(CharacterNgramFeatureExtractor(cfg["char_ngram"]))
         for ent in self.known_entities:
-            self.db.add(lemmatize_tokens(ent["title"].lower(), self.nlp))
+            self.db.add(ent["title"].lower())
+            for s in ent.get("synonyms", []):
+                self.db.add(s.lower())
         self.searcher = Searcher(self.db, CosineMeasure())
         self.cosim_threshold = cfg["cosim_threshold"]
         self.word_ngram = cfg["word_ngram"]
@@ -55,7 +55,7 @@ class SimstringPredictor(BasePredictor):
             for start, end, ngram in self.make_ngrams(
                 text["text"][sent_start:sent_end], self.word_ngram
             ):
-                query = lemmatize_tokens(ngram.lower(), self.nlp)
+                query = ngram.lower()
                 if query in self.blacklisted:
                     continue
                 results = self.searcher.ranked_search(query, self.cosim_threshold)
@@ -138,7 +138,7 @@ class FlairPredictor(BasePredictor):
             {
                 "start": (start := x.start_position),
                 "end": (end := x.end_position),
-                "text": text[start:end],
+                "text": x.text,
             }
             for x in s.get_spans("ner")
         ]
