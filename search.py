@@ -139,7 +139,6 @@ class SimstringJSONLFolderSearcher(BaseSearcher):
                 self.title2entity[stemmed_s] = ent
 
         self.searcher = Searcher(self.db, CosineMeasure())
-        print(self.searcher.search("adnex", 0.3))
         self.cosim_threshold = cfg["cosim_threshold"]
 
     def search(self, text: str):
