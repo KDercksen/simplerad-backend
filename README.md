@@ -10,7 +10,7 @@ Access the API at `localhost:8000`. View the documentation on
 `localhost:8000/docs`.
 
 ### Data
-To use the original SimpleRad data, contact @KDercksen.
+To use the original SimpleRad data, contact us personally.
 
 You can also use your own data. The concepts for entity linking should live in
 `data/entity_lists/*.jsonl` (can be configured in config files), you can use multiple `jsonl` files if you want.
