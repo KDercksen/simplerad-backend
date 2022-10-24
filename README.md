@@ -15,7 +15,7 @@ To use the original SimpleRad data, contact @KDercksen.
 You can also use your own data. The concepts for entity linking should live in
 `data/entity_lists/*.jsonl`, you can use multiple `jsonl` files if you want.
 Each line should be in the following format:
-```jsonl
+```
 {"title": ... , "description": ... , "url": ... , "source": ... , "source_id": ...}
 ```
 
