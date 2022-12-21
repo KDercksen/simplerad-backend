@@ -1,0 +1,5 @@
+name: "dense"
+spacy_model: "nl_core_news_lg"
+jsonl_directory: "data/entity_lists/"
+fasttext_path: "models/fasttext_cbow_300_5epochs.bin"
+top_n: 10

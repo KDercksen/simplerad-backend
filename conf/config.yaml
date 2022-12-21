@@ -1,6 +1,0 @@
-defaults:
-  - entities: simstring
-  - summarize: transformer_abstractive
-  - search: simstring
-  - frequency: transformer
-  - explanation: gpt3

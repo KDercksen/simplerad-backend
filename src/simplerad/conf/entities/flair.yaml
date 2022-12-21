@@ -1,0 +1,2 @@
+name: "flair"
+model_name: "/home/koen/projects/mihracle/models/flair_simplerad/best-model.pt"

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from pathlib import Path
 import argparse
 import json
+from pathlib import Path
 
 
 def read_jsonl(fname):

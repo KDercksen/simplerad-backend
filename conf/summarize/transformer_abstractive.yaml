@@ -1,3 +1,0 @@
-tokenizer: "facebook/mbart-large-50"
-model: "/home/koen/projects/mihracle/models/mbart-large-50-summarization"
-max_generation_length: 128

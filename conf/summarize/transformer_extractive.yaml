@@ -1,6 +1,0 @@
-tokenizer: "bert-base-multilingual-cased`"
-model: "bert-base-multilingual-cased"
-resize_position_embedding: 1000
-sentence_sep: "[SEP] [CLS]"
-num_tf_layers: 2
-num_tf_heads: 6

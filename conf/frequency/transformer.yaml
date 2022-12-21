@@ -1,8 +1,0 @@
-index_path: "models/bert-finetuned-lines-index.ann"
-embedding_dim: 768
-metric: "angular"
-transformer_model: "models/bert-base-multilingual-cased-finetuned-lines"
-# values below should be tuned together using a single model
-auc_lower_y: 0.6
-min_similarity: 0.7
-num_retrieve: 5000

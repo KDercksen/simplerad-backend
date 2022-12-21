@@ -1,0 +1,5 @@
+name: "simstring"
+jsonl_directory: "data/entity_lists/"
+spacy_model: "nl_core_news_lg"
+char_ngram: 3
+cosim_threshold: 0.2
