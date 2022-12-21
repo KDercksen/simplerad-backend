@@ -1,11 +1,15 @@
 # simplerad-backend
 
-simplerad backend fastapi
+Installation:
+
+```bash
+pip install .
+```
 
 To run the API:
 
 ```bash
-python simplerad.py
+simplerad [configuration]
 ```
 
 Access the API at `localhost:8000`. View the documentation on
@@ -13,10 +17,10 @@ Access the API at `localhost:8000`. View the documentation on
 
 ### Data
 
-To use the original SimpleRad data, contact @KDercksen.
+To use the original SimpleRad data, contact us personally.
 
 You can also use your own data. The concepts for entity linking should live in
-`data/entity_lists/*.jsonl`, you can use multiple `jsonl` files if you want.
+`data/entity_lists/*.jsonl` (can be configured in config files), you can use multiple `jsonl` files if you want.
 Each line should be in the following format:
 
 ```jsonl
