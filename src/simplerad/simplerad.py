@@ -81,7 +81,6 @@ def frequency(req: List[TextRequest]):
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg: DictConfig):
     # set the configuration built with Hydra
-    print(cfg)
     for module, models in model_dicts.items():
         models.set_config(cfg[module])
 
