@@ -2,6 +2,10 @@
 
 Installation:
 
+All necessary dependencies are included in the `setup.cfg` file. If you want to use hardware specific installations of libraries (e.g. torch with GPU support), you should install those first manually.
+
+To install the `simplerad-backend` package, run:
+
 ```bash
 pip install .
 ```
@@ -17,7 +21,7 @@ Access the API at `localhost:8000`. View the documentation on
 
 ### Data
 
-To use the original SimpleRad data, contact us personally.
+To use the original SimpleRad data, contact us personally. Along with data, we offer a script to automatically link the data into the front- and backend repositories.
 
 You can also use your own data. The concepts for entity linking should live in
 `data/entity_lists/*.jsonl` (can be configured in config files), you can use multiple `jsonl` files if you want.
