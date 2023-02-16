@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from omegaconf import DictConfig
-
 from ..utils import LazyValueDict, preprocess
 from .fuzzy import SimstringPredictor
 from .neural import FlairPredictor

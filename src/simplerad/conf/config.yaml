@@ -3,3 +3,5 @@ defaults:
   - summarize: transformer_abstractive
   - search: simstring
   - frequency: transformer
+  - text_classification: flair
+  - sentence_classification: flair

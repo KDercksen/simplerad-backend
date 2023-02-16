@@ -11,6 +11,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from omegaconf import DictConfig
 
+from .classification import (
+    get_text_classification,
+    get_sentence_classification,
+    text_classifiers,
+    sentence_classifiers,
+)
 from .entities import entity_taggers, get_entities
 from .frequency import frequencizers, get_frequencies
 from .schemas import (
@@ -19,6 +25,8 @@ from .schemas import (
     SearchResponse,
     SummaryResponse,
     TextRequest,
+    TextClassificationResponse,
+    SentenceClassificationResponse,
 )
 from .search import get_search_results, searchers
 from .summarization import get_summaries, summarizers
@@ -38,6 +46,8 @@ model_dicts = {
     "frequency": frequencizers,
     "search": searchers,
     "summarize": summarizers,
+    "text_classification": text_classifiers,
+    "sentence_classification": sentence_classifiers,
 }
 
 
@@ -76,6 +86,20 @@ def summarize(req: List[TextRequest]):
 def frequency(req: List[TextRequest]):
     logger.info(f"> frequency - processing {len(req)} items")
     return [get_frequencies(r.text) for r in req]
+
+
+@app.post(
+    "/sentence_classification/", response_model=List[SentenceClassificationResponse]
+)
+def sentence_classification(req: List[TextRequest]):
+    logger.info(f"> sentence classification - processing {len(req)} items")
+    return [get_sentence_classification(r.text) for r in req]
+
+
+@app.post("/text_classification/", response_model=List[TextClassificationResponse])
+def text_classification(req: List[TextRequest]):
+    logger.info(f"> text classification - processing {len(req)} items")
+    return [get_text_classification(r.text) for r in req]
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")

@@ -9,6 +9,10 @@ from .entities.schemas import EntityTaggerResponse
 from .frequency.schemas import FrequencyResponse
 from .search.schemas import SearchResponse
 from .summarization.schemas import SummaryResponse
+from .classification.schemas import (
+    TextClassificationResponse,
+    SentenceClassificationResponse,
+)
 
 
 class TextRequest(BaseModel):
@@ -21,4 +25,6 @@ __all__ = [
     SearchResponse,
     SummaryResponse,
     TextRequest,
+    TextClassificationResponse,
+    SentenceClassificationResponse,
 ]
