@@ -1,0 +1,3 @@
+name: "global_sklearn"
+embedding_model_path: "models/bert-base-multilingual-cased-finetuned-mednli"
+sklearn_model_path: "models/doc_bert_nli_full_HGBR"

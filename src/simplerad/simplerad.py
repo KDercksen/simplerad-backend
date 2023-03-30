@@ -18,10 +18,10 @@ from .classification import (
     sentence_classifiers,
 )
 from .entities import entity_taggers, get_entities
-from .frequency import frequencizers, get_frequencies
+from .prevalence import prevalencers, get_prevalences
 from .schemas import (
     EntityTaggerResponse,
-    FrequencyResponse,
+    PrevalenceResponse,
     SearchResponse,
     SummaryResponse,
     TextRequest,
@@ -43,7 +43,7 @@ app.add_middleware(
 
 model_dicts = {
     "entities": entity_taggers,
-    "frequency": frequencizers,
+    "prevalence": prevalencers,
     "search": searchers,
     "summarize": summarizers,
     "text_classification": text_classifiers,
@@ -82,10 +82,10 @@ def summarize(req: List[TextRequest]):
     return [get_summaries(r.text) for r in req]
 
 
-@app.post("/frequency/", response_model=List[FrequencyResponse])
-def frequency(req: List[TextRequest]):
+@app.post("/prevalence/", response_model=List[PrevalenceResponse])
+def prevalence(req: List[TextRequest]):
     logger.info(f"> frequency - processing {len(req)} items")
-    return [get_frequencies(r.text) for r in req]
+    return [get_prevalences(r.text) for r in req]
 
 
 @app.post(

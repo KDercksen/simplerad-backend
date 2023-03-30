@@ -6,7 +6,7 @@ from typing import List
 from pydantic import BaseModel
 
 from .entities.schemas import EntityTaggerResponse
-from .frequency.schemas import FrequencyResponse
+from .prevalence.schemas import PrevalenceResponse
 from .search.schemas import SearchResponse
 from .summarization.schemas import SummaryResponse
 from .classification.schemas import (
@@ -21,7 +21,7 @@ class TextRequest(BaseModel):
 
 __all__ = [
     EntityTaggerResponse,
-    FrequencyResponse,
+    PrevalenceResponse,
     SearchResponse,
     SummaryResponse,
     TextRequest,

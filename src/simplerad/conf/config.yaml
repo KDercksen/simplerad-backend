@@ -2,6 +2,6 @@ defaults:
   - entities: simstring
   - summarize: transformer_abstractive
   - search: simstring
-  - frequency: transformer
+  - prevalence: global_sklearn
   - text_classification: flair
   - sentence_classification: flair

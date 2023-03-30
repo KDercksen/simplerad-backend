@@ -2,6 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-class BaseFrequency:
-    def get_frequency(self, term: str):
+class BasePrevalence:
+    def get_prevalence(self, term: str):
         raise NotImplementedError("subclass should implement this function")
