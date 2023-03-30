@@ -29,6 +29,8 @@ class SKLearnPrevalence(BasePrevalence):
         s = Sentence(term)
         self.embeddings.embed(s)
         e = s.embedding.cpu().detach().numpy()
-        global_prevalence = self.regression_model.predict(e.reshape(1, -1))
+        global_prevalence = np.clip(
+            self.regression_model.predict(e.reshape(1, -1)), 0, 1
+        )
         global_certainty = self.calculate_confidence(global_prevalence)
         return global_prevalence, global_certainty
