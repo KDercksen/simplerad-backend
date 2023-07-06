@@ -9,6 +9,7 @@ import hydra
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from omegaconf import DictConfig
 
 from .classification import (
@@ -40,6 +41,8 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT"],
     expose_headers=["X-Process-Time"],
 )
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 model_dicts = {
     "entities": entity_taggers,
@@ -84,7 +87,7 @@ def summarize(req: List[TextRequest]):
 
 @app.post("/prevalence/", response_model=List[PrevalenceResponse])
 def prevalence(req: List[TextRequest]):
-    logger.info(f"> frequency - processing {len(req)} items")
+    logger.info(f"> prevalence - processing {len(req)} items")
     return [get_prevalences(r.text) for r in req]
 
 
