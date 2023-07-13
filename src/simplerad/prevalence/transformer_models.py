@@ -2,11 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from pathlib import Path
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from peft import LoraConfig, get_peft_model, set_peft_model_state_dict
-from omegaconf import DictConfig
-from .base import BasePrevalence
+
+import numpy as np
 import torch as t
+from omegaconf import DictConfig
+from peft import LoraConfig, get_peft_model, set_peft_model_state_dict
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+from .base import BasePrevalence
 
 
 class GlobalLocalAdapterPrevalence(BasePrevalence):
@@ -38,6 +41,9 @@ class GlobalLocalAdapterPrevalence(BasePrevalence):
             local_adapter / "adapter_model/adapter_model.bin"
         )
 
+        self.global_bin_errors = np.load(global_adapter / "bin_errors.npy")
+        self.local_bin_errors = np.load(local_adapter / "bin_errors.npy")
+
     def get_global_prevalence(self, term: str):
         global_inputs = self.tokenizer(term, return_tensors="pt").to(self.device)
         with t.no_grad():
@@ -46,8 +52,9 @@ class GlobalLocalAdapterPrevalence(BasePrevalence):
                 t.sigmoid(self.model(**global_inputs).logits).cpu().numpy()[0]
             )
 
-            # TODO:
-            global_certainty = 1
+            global_certainty = self.calculate_confidence(
+                global_prevalence, self.global_bin_errors
+            )
 
         return global_prevalence, global_certainty
 
@@ -61,7 +68,8 @@ class GlobalLocalAdapterPrevalence(BasePrevalence):
                 t.sigmoid(self.model(**local_inputs).logits).cpu().numpy()[0]
             )
 
-            # TODO:
-            local_certainty = 1
+            local_certainty = self.calculate_confidence(
+                local_prevalence, self.local_bin_errors
+            )
 
         return local_prevalence, local_certainty

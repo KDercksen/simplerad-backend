@@ -21,10 +21,6 @@ class SKLearnPrevalence(BasePrevalence):
         self.bin_errors = np.load(sklearn_model_path / "bin_errors.npy")
         self.embeddings = TransformerDocumentEmbeddings(cfg["embedding_model_path"])
 
-    def calculate_confidence(self, prediction: float):
-        y = np.digitize(prediction, np.linspace(0, 1, self.bin_errors.shape[0] + 1))
-        return 1 - self.bin_errors[y - 1]
-
     def get_global_prevalence(self, term: str):
         # get transformer embedding
         s = Sentence(term)
@@ -33,7 +29,7 @@ class SKLearnPrevalence(BasePrevalence):
         global_prevalence = np.clip(
             self.regression_model.predict(e.reshape(1, -1)), 0, 1
         )
-        global_certainty = self.calculate_confidence(global_prevalence)
+        global_certainty = self.calculate_confidence(global_prevalence, self.bin_errors)
         return global_prevalence, global_certainty
 
     def get_local_prevalence(self, term: str, context: str):
