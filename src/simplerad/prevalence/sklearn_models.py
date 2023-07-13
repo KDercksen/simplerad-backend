@@ -13,6 +13,7 @@ from .base import BasePrevalence
 
 
 class SKLearnPrevalence(BasePrevalence):
+    # NOTE: this model can only predict global prevalence, and predicts 0 for local prevalence/certainty
     def __init__(self, cfg: DictConfig):
         sklearn_model_path = Path(cfg["sklearn_model_path"])
         self.regression_model = joblib.load(sklearn_model_path / "regression_model.pkl")
@@ -24,7 +25,7 @@ class SKLearnPrevalence(BasePrevalence):
         y = np.digitize(prediction, np.linspace(0, 1, self.bin_errors.shape[0] + 1))
         return 1 - self.bin_errors[y - 1]
 
-    def get_prevalence(self, term: str):
+    def get_global_prevalence(self, term: str):
         # get transformer embedding
         s = Sentence(term)
         self.embeddings.embed(s)
@@ -34,3 +35,7 @@ class SKLearnPrevalence(BasePrevalence):
         )
         global_certainty = self.calculate_confidence(global_prevalence)
         return global_prevalence, global_certainty
+
+    def get_local_prevalence(self, term: str, context: str):
+        print("WARNING: not implemented for this model")
+        return 0, 0

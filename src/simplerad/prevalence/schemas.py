@@ -5,5 +5,5 @@ from pydantic import BaseModel
 
 
 class PrevalenceResponse(BaseModel):
-    global_prevalence: float
-    global_certainty: float
+    prevalence: float
+    certainty: float

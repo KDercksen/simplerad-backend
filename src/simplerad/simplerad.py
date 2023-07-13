@@ -19,13 +19,14 @@ from .classification import (
     sentence_classifiers,
 )
 from .entities import entity_taggers, get_entities
-from .prevalence import prevalencers, get_prevalences
+from .prevalence import prevalencers, get_global_prevalence, get_local_prevalence
 from .schemas import (
     EntityTaggerResponse,
     PrevalenceResponse,
     SearchResponse,
     SummaryResponse,
     TextRequest,
+    TextContextRequest,
     TextClassificationResponse,
     SentenceClassificationResponse,
 )
@@ -85,10 +86,16 @@ def summarize(req: List[TextRequest]):
     return [get_summaries(r.text) for r in req]
 
 
-@app.post("/prevalence/", response_model=List[PrevalenceResponse])
+@app.post("/prevalence/global", response_model=List[PrevalenceResponse])
 def prevalence(req: List[TextRequest]):
-    logger.info(f"> prevalence - processing {len(req)} items")
-    return [get_prevalences(r.text) for r in req]
+    logger.info(f"> prevalence/global - processing {len(req)} items")
+    return [get_global_prevalence(r.text) for r in req]
+
+
+@app.post("/prevalence/local", response_model=List[PrevalenceResponse])
+def prevalence(req: List[TextContextRequest]):
+    logger.info(f"> prevalence/local - processing {len(req)} items")
+    return [get_local_prevalence(r.text, r.context) for r in req]
 
 
 @app.post(

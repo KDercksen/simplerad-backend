@@ -19,6 +19,10 @@ class TextRequest(BaseModel):
     text: str
 
 
+class TextContextRequest(TextRequest):
+    context: str
+
+
 __all__ = [
     EntityTaggerResponse,
     PrevalenceResponse,

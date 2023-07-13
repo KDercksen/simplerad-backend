@@ -1,0 +1,5 @@
+name: "global_local_adapter"
+base_model: "kdercksen/xlm-roberta-longformer-base-16384"
+global_adapter: "/home/koen/projects/mihracle/models/prevalence/xlm-roberta-global-lora16/fold_0/checkpoint-4000"
+# just a demo path, use a fully trained model!
+local_adapter: "/home/koen/projects/mihracle/models/prevalence/local/xlm-roberta-longformer_lora16/checkpoint-5200"
