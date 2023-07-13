@@ -35,10 +35,12 @@ class GlobalLocalAdapterPrevalence(BasePrevalence):
         self.model.to(self.device)
 
         self.global_state_dict = t.load(
-            global_adapter / "adapter_model/adapter_model.bin"
+            global_adapter / "adapter_model/adapter_model.bin",
+            map_location=self.device,
         )
         self.local_state_dict = t.load(
-            local_adapter / "adapter_model/adapter_model.bin"
+            local_adapter / "adapter_model/adapter_model.bin",
+            map_location=self.device,
         )
 
         self.global_bin_errors = np.load(global_adapter / "bin_errors.npy")
