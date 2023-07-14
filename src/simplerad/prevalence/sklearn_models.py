@@ -20,6 +20,7 @@ class SKLearnPrevalence(BasePrevalence):
         # this is an array of mean absolute errors for each specific prediction bin
         self.bin_errors = np.load(sklearn_model_path / "bin_errors.npy")
         self.embeddings = TransformerDocumentEmbeddings(cfg["embedding_model_path"])
+        self.smooth_error_window = cfg.get("smooth_error_window", -1)
 
     def get_global_prevalence(self, term: str):
         # get transformer embedding
@@ -29,7 +30,11 @@ class SKLearnPrevalence(BasePrevalence):
         global_prevalence = np.clip(
             self.regression_model.predict(e.reshape(1, -1)), 0, 1
         )
-        global_certainty = self.calculate_confidence(global_prevalence, self.bin_errors)
+        global_certainty = self.calculate_confidence(
+            global_prevalence,
+            self.bin_errors,
+            smooth_error_window=self.smooth_error_window,
+        )
         return global_prevalence, global_certainty
 
     def get_local_prevalence(self, term: str, context: str):

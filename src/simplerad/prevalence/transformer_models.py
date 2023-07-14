@@ -43,6 +43,8 @@ class GlobalLocalAdapterPrevalence(BasePrevalence):
 
         self.global_bin_errors = np.load(global_adapter / "bin_errors.npy")
         self.local_bin_errors = np.load(local_adapter / "bin_errors.npy")
+        # default sub-0 means no smoothing
+        self.smooth_error_window = cfg.get("smooth_error_window", -1)
 
     def get_global_prevalence(self, term: str):
         global_inputs = self.tokenizer(term, return_tensors="pt").to(self.device)
@@ -53,7 +55,9 @@ class GlobalLocalAdapterPrevalence(BasePrevalence):
             )
 
             global_certainty = self.calculate_confidence(
-                global_prevalence, self.global_bin_errors
+                global_prevalence,
+                self.global_bin_errors,
+                smooth_error_window=self.smooth_error_window,
             )
 
         return global_prevalence, global_certainty
@@ -69,7 +73,9 @@ class GlobalLocalAdapterPrevalence(BasePrevalence):
             )
 
             local_certainty = self.calculate_confidence(
-                local_prevalence, self.local_bin_errors
+                local_prevalence,
+                self.local_bin_errors,
+                smooth_error_window=self.smooth_error_window,
             )
 
         return local_prevalence, local_certainty
